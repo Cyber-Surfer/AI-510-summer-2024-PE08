@@ -1,0 +1,77 @@
+# Namespace config (like workspace/project)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cybersufer1972-namespace # !!!! Edit this for PE
+---
+# Deploy container/pod
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cybersurfer1972-pod-deploy # Gave something unique to stand out but not referenced
+  namespace: cybersufer1972-namespace # !!!! Edit this for PE - Deploy to this namespace(like workspace/project)
+spec:
+  selector:
+    matchLabels:
+      app: ai-department-app
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: ai-department-app # This will be referenced by service
+    spec:
+      containers:
+      - name: ai-department-container # not referenced but for future usage
+        image: cybersurfer1972/flask_docker_image_pe08:latest # !!!! Edit this for PE - your own image
+        # resources:
+        #   limits:
+        #     memory: "128Mi"
+        #     cpu: "250m"
+        ports:
+        - containerPort: 3456 # !!!! Edit this for PE
+---
+# deploy service which configures 
+apiVersion: v1
+kind: Service
+metadata:
+  name: cybersurfer1972-svc # !!!! Edit this for PE - maybe new service name and match to svc/ingress? this is service and this will be referenced by ing
+  namespace: cybersufer1972-namespace # !!!! Edit this for PE - deploy to this namespace(like workspace/project)
+spec:
+  selector:
+    app: ai-department-app # referencing deployed deployment: Deployment > spec.template.metadata.labels.app  
+  ports:
+  - protocol: "TCP"
+    port: 6000 # Ingress will connect to this port
+    targetPort: 3456 # !!!! Edit this for PE - nginx uses port 80, actual deployed container port
+  type: ClusterIP
+---
+# if you are using docker driver or want to use minikube add-on ingress:
+# be sure to enabled ingress on minikube “minikube addons enable ingress”
+# and run "minkube tunnel" on seperate terminal
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cybersurfer1972-ing
+  namespace: cybersufer1972-namespace # !!!! Edit this for PE
+  annotations:
+    spec.ingressClassName: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+    - http: # any connection comming through port 80
+        paths:
+          - pathType: ImplementationSpecific
+            path: / 
+            backend:
+              service:
+                name: cybersurfer1972-svc # !!!! Edit this for PE - maybe new service name and match to svc/ingress?
+                port: 
+                  number: 6000 # this is to access service not external exposed port
+          # example of adding some other service
+          #- pathType: ImplementationSpecific
+          #  path: /some_other_svc
+          #  backend:
+          #    service:
+          #      name: some-other-svc
+          #      port: 
+          #        number: 80
